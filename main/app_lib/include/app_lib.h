@@ -9,4 +9,6 @@ esp_err_t app_lvgl_init(void);
 esp_err_t app_touch_init(void);
 void app_main_display(void);
 void app_lvgl_test(void);
+void init_spiffs(void);
+void load_ttf_font(void);
 

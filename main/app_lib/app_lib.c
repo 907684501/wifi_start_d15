@@ -14,7 +14,8 @@
 #include "driver/i2c.h"
 #include "app_lib.h"
 #include "lvgl.h"
-
+#include "esp_spiffs.h"
+#include <dirent.h>
 
 /* LCD size */
 #define EXAMPLE_LCD_H_RES (1024)
@@ -77,6 +78,8 @@
 
 static const char *TAG = "EXAMPLE";
 
+static lv_font_t *ttf_font;
+
 // LVGL image declare
 LV_IMG_DECLARE(esp_logo)
 
@@ -87,8 +90,6 @@ static esp_lcd_touch_handle_t touch_handle = NULL;
 /* LVGL display and touch */
 static lv_display_t *lvgl_disp = NULL;
 static lv_indev_t *lvgl_touch_indev = NULL;
-
-
 
 esp_err_t app_lcd_init(void)
 {
@@ -372,4 +373,73 @@ void wifi_list(void)
         printf("%2d   %3d    %3d    %02X-%02X-%02X-%02X-%02X-%02X    %s\n", i + 1, apo.primary, apo.rssi, apo.bssid[0], apo.bssid[1], apo.bssid[2], apo.bssid[3], apo.bssid[4], apo.bssid[5], apo.ssid);
     }
     printf("-----------------------------------------------------------\n\n");
+}
+
+void init_spiffs(void)
+{
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = "/storage",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = true};
+
+    // 初始化 SPIFFS
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+    if (ret != ESP_OK)
+    {
+        if (ret == ESP_FAIL)
+        {
+            printf("Failed to mount or format filesystem\n");
+        }
+        else if (ret == ESP_ERR_NOT_FOUND)
+        {
+            printf("Failed to find SPIFFS partition\n");
+        }
+        else
+        {
+            printf("Failed to initialize SPIFFS (%s)\n", esp_err_to_name(ret));
+        }
+        return;
+    }
+
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(NULL, &total, &used);
+    if (ret != ESP_OK)
+    {
+        printf("Failed to get SPIFFS partition information (%s)\n", esp_err_to_name(ret));
+    }
+    else
+    {
+        printf("SPIFFS partition size: total: %d, used: %d\n", total, used);
+
+        // 打印 SPIFFS 中的所有文件名称
+        DIR *dir = opendir("/storage");
+        if (dir == NULL)
+        {
+            printf("Failed to open directory\n");
+            return;
+        }
+
+        struct dirent *entry;
+        printf("Files in SPIFFS:\n");
+        while ((entry = readdir(dir)) != NULL)
+        {
+            printf("  %s\n", entry->d_name);
+        }
+        closedir(dir);
+    }
+}
+
+void load_ttf_font(void)
+{
+    // 从 TinyTTF 创建 LVGL 字体
+    ttf_font = lv_tiny_ttf_create_file("/storage/font1.ttf", 24); // 字体大小为 28
+
+    if (!ttf_font)
+    {
+        printf("Failed to create LVGL font from Tiny TTF\n");
+        return;
+    }
+
+    printf("Tiny TTF font loaded successfully\n");
 }

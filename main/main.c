@@ -74,6 +74,9 @@ void task_app(void *pvPara)
 
 void app_main(void)
 {
+    init_spiffs();
+    load_ttf_font();
+
     ESP_LOGI(TAG, "0.初始化NVS存储");
     esp_err_t ret = nvs_flash_init();
     ESP_ERROR_CHECK(ret);
@@ -121,13 +124,14 @@ void app_main(void)
     /* Show LVGL objects */
     lvgl_port_lock(0);
 
-    //app_main_display();
+    // app_main_display();
     app_lvgl_test();
     // lv_demo_music();
     // lv_demo_stress();
     // lv_demo_widgets();
 
     lvgl_port_unlock();
+
 
     for (;;)
     {
